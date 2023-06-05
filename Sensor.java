@@ -76,7 +76,6 @@ public class Sensor
                         System.out.println("Sending message...");
                     }
                 }
-                
             }
             catch(SocketException se)
             {

@@ -17,6 +17,7 @@ public class Sensor
     static volatile boolean finished = false;
     public static String messageNotify="";
     public static String adrress;
+    public static boolean MqttInitialized = false;
     public static void main(String[] args)  throws InterruptedException
     {
         if(args.length == 3){
@@ -67,9 +68,10 @@ public class Sensor
                 SocketFunctions.sendData(messageNotify,group,port,socket);
                 while(true)
                 {
-                    Thread.sleep(7000);
+                    Thread.sleep(3000);
                     SocketFunctions.sendData(messageNotify,group,port,socket);
                     if(!Sensor.MQTT_BROKER.equals("")){
+                        System.out.println("debug");
                         String message = "test";
                         MqttMessage mqttMessage = new MqttMessage(message.getBytes());
                         client.publish(Sensor.MQTT_TOPIC, mqttMessage);
@@ -127,13 +129,12 @@ class ReadThread implements Runnable
                     
                 }
                 else if(messageType.equals("notify") && messageSender.equals("controller")){
-                    //Sensor.MQTT_BROKER = "tcp://"+hostIp+":4000";
-                    Sensor.MQTT_BROKER = "tcp://localhost:4000";
-                    if(!Sensor.MQTT_BROKER.equals("")){
-                        MqttHelper.initMqtt(Sensor.client);
+                    Sensor.MQTT_BROKER = "tcp://"+hostIp+":4000";
+                    //Sensor.MQTT_BROKER = "tcp://localhost:4000";
+                    if(!Sensor.MQTT_BROKER.equals("") && !Sensor.MqttInitialized){
+                        Sensor.MqttInitialized = true;
+                        MqttHelper.initMqtt();
                     }
-
-                    System.out.println(hostIp);
                 }
             }
         } 
@@ -188,14 +189,15 @@ class SocketFunctions{
 }
 class MqttHelper{
 
-    public static void initMqtt(MqttClient client){
+    public static void initMqtt(){
         try{
             System.out.println(Sensor.MQTT_BROKER);
-            client = new MqttClient(Sensor.MQTT_BROKER, MqttClient.generateClientId());
+            Sensor.client = new MqttClient(Sensor.MQTT_BROKER, MqttClient.generateClientId());
             MqttConnectOptions options = new MqttConnectOptions();
             options.setCleanSession(true);
-            client.connect(options);
-        }
+            Sensor.client.connect(options);
+            System.out.println(Sensor.client);
+      }
         catch (MqttException e) {
             System.out.println("Error publishing message");
             e.printStackTrace();

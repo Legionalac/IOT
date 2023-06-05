@@ -7,10 +7,12 @@ import java.util.ArrayList;
 import java.io.FileWriter;  
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 public class Controller
 {
     
-    private static final String MQTT_BROKER = "tcp://localhost:4000";
+    private static final String MQTT_BROKER = "tcp://192.168.5.105:4000";
     private static final String MQTT_TOPIC = "device/status";
     static String messageMSearch;
     static String messageNotify;
@@ -28,6 +30,7 @@ public class Controller
             catch (UnknownHostException e) {
                 e.printStackTrace();
             }
+            System.out.println(SocketFunctionsServer.getIpAddress());
             messageMSearch = 
             "HOST:"+ adrress +"\n"+
             "ssdp:msearch\n"+ 
@@ -159,6 +162,27 @@ class SocketFunctionsServer{
             return message;
         
     }
+    public static String getIpAddress(){
+        final Pattern pattern = Pattern.compile("192", Pattern.CASE_INSENSITIVE);
+        try{ 
+            Enumeration en = NetworkInterface.getNetworkInterfaces(); 
+            while (en.hasMoreElements()) { 
+                NetworkInterface ni = (NetworkInterface) en.nextElement(); 
+                Enumeration ee = ni.getInetAddresses(); 
+                while (ee.hasMoreElements()) { 
+                    InetAddress ia = (InetAddress) ee.nextElement(); 
+                    String ip = ia.getHostAddress(); 
+                    Matcher matcher = pattern.matcher(ip);
+                    boolean matched = matcher.find();
+                    if(matched)
+                      return ip;
+                } 
+            } 
+        } 
+        catch(Exception e){ 
+        }
+        return "";
+  }
 }
 
 class Device{

@@ -60,7 +60,9 @@ public class Controller
                 //System.out.println("#####################");  
                 Device.printAllDevices();
                 SocketFunctionsServer.sendData(messageNotify,group,port,socket);
-                
+                String message = "aktuatorTest";
+                MqttMessage mqttMessage = new MqttMessage(message.getBytes());
+                Controller.client.publish("plastenik/pumpa",mqttMessage); 
             }
         }
         catch(SocketException se)

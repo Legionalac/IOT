@@ -6,22 +6,23 @@ import java.util.Arrays;
 import java.io.FileWriter;   // Import the FileWriter class
 import java.io.IOException;
 import java.net.UnknownHostException;
-public class Client
+public class Actuator 
 {
-    private static final String MQTT_BROKER = "tcp://localhost:4000";
-    private static final String MQTT_TOPIC = "device/status";
+    public static String MQTT_BROKER = "";
+    public static final String MQTT_TOPIC = "device/status";
+    public static MqttClient client;
     public static final String deviceCategoryList[] = new String[]{"Sensor","Actuator","Controller","Aplication"};
     public static final String deviceTypeSensor[] = new String[]{"Temperature","Humidity","Light"};
     public static final String deviceTypeActuator[] = new String[]{"Fan","Pump","Light"};
     static volatile boolean finished = false;
     public static String messageNotify="";
     public static String adrress;
+    public static boolean MqttInitialized = false;
     public static void main(String[] args)  throws InterruptedException
     {
         if(args.length == 3){
             try
             {
-                
                 String data = SocketFunctions.getIndexDevice(deviceCategoryList,args[1]);
                 if(args[1].equals("Sensor")){
                     data = data + "|" + SocketFunctions.getIndexDevice(deviceTypeSensor,args[2]) + "|0";
@@ -62,30 +63,14 @@ public class Client
                 socket.joinGroup(group);
                 SocketFunctions.sendData(messageMSearch,group,port,socket);
                 Thread t = new Thread(new
-                ReadThread(socket,group,port));
+                ReadThreadActuator(socket,group,port));
                 t.start();
-                try {
-                    MqttClient client = new MqttClient(MQTT_BROKER, MqttClient.generateClientId());
-                    MqttConnectOptions options = new MqttConnectOptions();
-                    options.setCleanSession(true);
-                    client.connect(options);
-                    String message = "test";
-                    String topic = "device/status";
-                    MqttMessage mqttMessage = new MqttMessage(message.getBytes());
-                    client.publish(topic, mqttMessage);
-                    System.out.println("Sending message...");
-                } catch (MqttException e) {
-                    System.out.println("Error publishing message");
-                    e.printStackTrace();
-                }
                 SocketFunctions.sendData(messageNotify,group,port,socket);
                 while(true)
                 {
-                    Thread.sleep(7000);
+                    Thread.sleep(3000);
                     SocketFunctions.sendData(messageNotify,group,port,socket);
-
-                }
-                
+               }
             }
             catch(SocketException se)
             {
@@ -103,13 +88,13 @@ public class Client
     }
     
 }
-class ReadThread implements Runnable
+class ReadThreadActuator implements Runnable
 {
     private MulticastSocket socket;
     private InetAddress group;
     private int port;
     public static final int MAX_LEN = 1000;
-    ReadThread(MulticastSocket socket,InetAddress group,int port)
+    ReadThreadActuator(MulticastSocket socket,InetAddress group,int port)
     {
         this.socket = socket;
         this.group = group;
@@ -129,12 +114,17 @@ class ReadThread implements Runnable
                 
                 if(messageType.equals("msearch")){
                     System.out.println("msearch received");
-                    SocketFunctions.sendData(Client.messageNotify,group,port,socket);
+                    SocketFunctions.sendData(Actuator.messageNotify,group,port,socket);
                     
                 }
                 else if(messageType.equals("notify") && messageSender.equals("controller")){
-                    
-                    System.out.println(hostIp);
+                    Actuator.MQTT_BROKER = "tcp://"+hostIp+":4000";
+                    //Actuator.MQTT_BROKER = "tcp://localhost:4000";
+                    if(!Actuator.MQTT_BROKER.equals("") && !Actuator.MqttInitialized){
+                        Actuator.MqttInitialized = true;
+                        MqttHelperActuator.initMqtt();
+                        MqttHelperActuator.subscribeToController("plastenik/pumpa");
+                    }
                 }
             }
         } 
@@ -187,6 +177,31 @@ class SocketFunctions{
         return "0";
     }
 }
-class MqttHelper{
+class MqttHelperActuator{
 
+    public static void initMqtt(){
+        try{
+            System.out.println(Actuator.MQTT_BROKER);
+            Actuator.client = new MqttClient(Actuator.MQTT_BROKER, MqttClient.generateClientId());
+            MqttConnectOptions options = new MqttConnectOptions();
+            options.setCleanSession(true);
+            Actuator.client.connect(options);
+      }
+        catch (MqttException e) {
+            System.out.println("Error publishing message");
+            e.printStackTrace();
+        }
+    }
+    public static void subscribeToController(String Topic){
+        try{
+            
+            Actuator.client.subscribe(Topic,(topic,controllerMessage) -> {
+                String mqttMessage = new String(controllerMessage.getPayload());
+                System.out.println(mqttMessage);
+            }); 
+        }
+        catch(MqttException e){
+            e.printStackTrace();
+        }
+    }
 }

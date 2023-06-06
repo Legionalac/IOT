@@ -63,7 +63,7 @@ public class Sensor
                 socket.joinGroup(group);
                 SocketFunctions.sendData(messageMSearch,group,port,socket);
                 Thread t = new Thread(new
-                ReadThread(socket,group,port));
+                ReadThreadSensor(socket,group,port));
                 t.start();
                 SocketFunctions.sendData(messageNotify,group,port,socket);
                 while(true)
@@ -99,13 +99,13 @@ public class Sensor
     }
     
 }
-class ReadThread implements Runnable
+class ReadThreadSensor implements Runnable
 {
     private MulticastSocket socket;
     private InetAddress group;
     private int port;
     public static final int MAX_LEN = 1000;
-    ReadThread(MulticastSocket socket,InetAddress group,int port)
+    ReadThreadSensor(MulticastSocket socket,InetAddress group,int port)
     {
         this.socket = socket;
         this.group = group;
@@ -133,7 +133,7 @@ class ReadThread implements Runnable
                     //Sensor.MQTT_BROKER = "tcp://localhost:4000";
                     if(!Sensor.MQTT_BROKER.equals("") && !Sensor.MqttInitialized){
                         Sensor.MqttInitialized = true;
-                        MqttHelper.initMqtt();
+                        MqttHelperSensor.initMqtt();
                     }
                 }
             }
@@ -187,7 +187,7 @@ class SocketFunctions{
         return "0";
     }
 }
-class MqttHelper{
+class MqttHelperSensor{
 
     public static void initMqtt(){
         try{

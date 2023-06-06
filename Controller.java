@@ -11,9 +11,9 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 public class Controller
 {
-    
-    private static final String MQTT_BROKER = "tcp://192.168.5.105:4000";
-    private static final String MQTT_TOPIC = "device/status";
+    public static MqttClient client;
+    public static String MQTT_BROKER = "";
+    public static final String MQTT_TOPIC = "device/status";
     static String messageMSearch;
     static String messageNotify;
     static volatile boolean finished = false;
@@ -24,13 +24,8 @@ public class Controller
     
         try
         {
-            try{
-                adrress = InetAddress.getLocalHost().getHostAddress();
-            }
-            catch (UnknownHostException e) {
-                e.printStackTrace();
-            }
-            System.out.println(SocketFunctionsServer.getIpAddress());
+            adrress = SocketFunctionsServer.getIpAddress();
+            MQTT_BROKER = "tcp://" + adrress + ":4000";
             messageMSearch = 
             "HOST:"+ adrress +"\n"+
             "ssdp:msearch\n"+ 
@@ -53,10 +48,7 @@ public class Controller
             t.start(); 
             SocketFunctionsServer.sendData(messageMSearch,group,port,socket);
             //System.out.println("Sending msearch");
-            MqttClient client = new MqttClient(MQTT_BROKER, MqttClient.generateClientId());
-            MqttConnectOptions options = new MqttConnectOptions();
-            options.setCleanSession(true);
-            client.connect(options);
+            MqttHelperServer.initMqtt();
             client.subscribe(MQTT_TOPIC,(topic,message)->{
                 String mqttMessage = new String(message.getPayload());
                 System.out.println(mqttMessage);
@@ -295,4 +287,19 @@ class Device{
         }
     }
 
+}
+class MqttHelperServer{
+
+    public static void initMqtt(){
+        try{
+            Controller.client = new MqttClient(Controller.MQTT_BROKER, MqttClient.generateClientId());
+            MqttConnectOptions options = new MqttConnectOptions();
+            options.setCleanSession(true);
+            Controller.client.connect(options);
+      }
+        catch (MqttException e) {
+            System.out.println("Error publishing message");
+            e.printStackTrace();
+        }
+    }
 }

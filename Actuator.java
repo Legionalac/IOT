@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.io.FileWriter;   // Import the FileWriter class
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 public class Actuator 
 {
     public static String MQTT_BROKER = "";
@@ -35,13 +37,7 @@ public class Actuator
                 }
                 else
                     data = data + "|3|0";
-                // try{
-                //     adrress = InetAddress.getLocalHost().getHostAddress();
-                // }
-                // catch (UnknownHostException e) {
-                //     e.printStackTrace();
-                // }
-                adrress = "1";
+                adrress = SocketFunctionsServer.getIpAddress(); 
                 String messageMSearch = 
                     "HOST:"+ adrress +"\n"+
                     "ssdp:msearch\n"+ 
@@ -176,6 +172,27 @@ class SocketFunctions{
         }
         return "0";
     }
+    public static String getIpAddress(){
+        final Pattern pattern = Pattern.compile("192", Pattern.CASE_INSENSITIVE);
+        try{ 
+            Enumeration en = NetworkInterface.getNetworkInterfaces(); 
+            while (en.hasMoreElements()) { 
+                NetworkInterface ni = (NetworkInterface) en.nextElement(); 
+                Enumeration ee = ni.getInetAddresses(); 
+                while (ee.hasMoreElements()) { 
+                    InetAddress ia = (InetAddress) ee.nextElement(); 
+                    String ip = ia.getHostAddress(); 
+                    Matcher matcher = pattern.matcher(ip);
+                    boolean matched = matcher.find();
+                    if(matched)
+                      return ip;
+                } 
+            } 
+        } 
+        catch(Exception e){ 
+        }
+        return "";
+  }
 }
 class MqttHelperActuator{
 

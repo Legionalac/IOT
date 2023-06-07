@@ -13,7 +13,7 @@ public class Controller
 {
     public static MqttClient client;
     public static String MQTT_BROKER = "";
-    public static final String MQTT_TOPIC = "device/status";
+    public static final String MQTT_TOPIC = "plastenik/biljka/Temperature";
     static String messageMSearch;
     static String messageNotify;
     static volatile boolean finished = false;

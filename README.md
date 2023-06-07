@@ -1,5 +1,5 @@
 # IOT
-Add this to mosquitto.conf /etc/mosquitto
+Add this to mosquitto.conf in /etc/mosquitto
 >listener 4000\
 >allow_anonymous true
 

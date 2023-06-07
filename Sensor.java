@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.io.FileWriter;   // Import the FileWriter class
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 public class Sensor 
 {
     public static String MQTT_BROKER = "";
@@ -35,13 +37,7 @@ public class Sensor
                 }
                 else
                     data = data + "|3|0";
-                // try{
-                //     adrress = InetAddress.getLocalHost().getHostAddress();
-                // }
-                // catch (UnknownHostException e) {
-                //     e.printStackTrace();
-                // }
-                adrress = "1";
+                adrress = SocketFunctionsServer.getIpAddress();
                 String messageMSearch = 
                     "HOST:"+ adrress +"\n"+
                     "ssdp:msearch\n"+ 
@@ -71,11 +67,7 @@ public class Sensor
                     Thread.sleep(3000);
                     SocketFunctions.sendData(messageNotify,group,port,socket);
                     if(!Sensor.MQTT_BROKER.equals("")){
-                        System.out.println("debug");
-                        String message = "test";
-                        MqttMessage mqttMessage = new MqttMessage(message.getBytes());
-                        client.publish(Sensor.MQTT_TOPIC, mqttMessage);
-                        System.out.println("Sending message...");
+                        MqttHelperSensor.sendMqttData(args[2]);
                     }
                 }
             }
@@ -89,10 +81,10 @@ public class Sensor
                 System.out.println("Error reading/writing from/to socket");
                 ie.printStackTrace();
             }
-            catch (MqttException e) {
-                System.out.println("Error publishing message");
-                e.printStackTrace();
-            }
+            // catch (MqttException e) {
+            //     System.out.println("Error publishing message");
+            //     e.printStackTrace();
+            // }
         }
         else
             return ;
@@ -186,6 +178,27 @@ class SocketFunctions{
         }
         return "0";
     }
+    public static String getIpAddress(){
+        final Pattern pattern = Pattern.compile("192", Pattern.CASE_INSENSITIVE);
+        try{ 
+            Enumeration en = NetworkInterface.getNetworkInterfaces(); 
+            while (en.hasMoreElements()) { 
+                NetworkInterface ni = (NetworkInterface) en.nextElement(); 
+                Enumeration ee = ni.getInetAddresses(); 
+                while (ee.hasMoreElements()) { 
+                    InetAddress ia = (InetAddress) ee.nextElement(); 
+                    String ip = ia.getHostAddress(); 
+                    Matcher matcher = pattern.matcher(ip);
+                    boolean matched = matcher.find();
+                    if(matched)
+                      return ip;
+                } 
+            } 
+        } 
+        catch(Exception e){ 
+        }
+        return "";
+  }
 }
 class MqttHelperSensor{
 
@@ -198,6 +211,36 @@ class MqttHelperSensor{
             Sensor.client.connect(options);
             System.out.println(Sensor.client);
       }
+        catch (MqttException e) {
+            System.out.println("Error publishing message");
+            e.printStackTrace();
+        }
+    }
+    public static void sendMqttData(String type){
+        int value;
+        try{
+            if(type.equals("Temperature")){
+                Random rand = new Random();
+                value = rand.nextInt(30 - 10 + 1) + 10;
+                MqttMessage mqttMessage = new MqttMessage(String.valueOf(value).getBytes());
+                Sensor.client.publish("plastenik/biljka/" + type,mqttMessage);
+                System.out.println(value);
+            }
+            else if(type.equals("Humidity")){
+                Random rand = new Random();
+                value = rand.nextInt(101);
+                MqttMessage mqttMessage = new MqttMessage(String.valueOf(value).getBytes());
+                Sensor.client.publish("plastenik/biljka/" + type,mqttMessage);
+                System.out.println(value);
+            }
+            else{
+                Random rand = new Random();
+                value = rand.nextInt(1000);
+                MqttMessage mqttMessage = new MqttMessage(String.valueOf(value).getBytes());
+                Sensor.client.publish("plastenik/biljka/" + type,mqttMessage);
+                System.out.println(value);
+            }
+        }
         catch (MqttException e) {
             System.out.println("Error publishing message");
             e.printStackTrace();

@@ -1,5 +1,6 @@
 {
-    "editor.fontLigatures": false,
-    "editor.fontVariations": false,
-    "vim.vimrc.enable": true
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar",
+        "org.eclipse.paho.client.mqttv3-1.2.5.jar"
+    ]
 }

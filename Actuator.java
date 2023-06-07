@@ -148,7 +148,7 @@ class SocketFunctions{
     }
     public static String recvData(InetAddress group, int port, MulticastSocket socket){
             String message = "";
-            byte[] buffer = new byte[ReadThread.MAX_LEN];
+            byte[] buffer = new byte[ReadThreadActuator.MAX_LEN];
             DatagramPacket datagram = new
             DatagramPacket(buffer,buffer.length,group,port);
             try

@@ -40,14 +40,11 @@ public class Controller
             deviceList = new ArrayList<Device>();
             socket.setTimeToLive(1);
             //socket.setLoopbackMode(true);
-              
             socket.joinGroup(group);
             Thread t = new Thread(new
             ReadThreadServer(socket,group,port));
-          
             t.start(); 
             SocketFunctionsServer.sendData(messageMSearch,group,port,socket);
-            //System.out.println("Sending msearch");
             MqttHelperServer.initMqtt();
             client.subscribe(MQTT_TOPIC,(topic,message)->{
                 String mqttMessage = new String(message.getPayload());
@@ -188,7 +185,8 @@ class Device{
     private String deviceType;
     private int deviceId;
     private long timeAlive;
-
+    private int value;
+    private boolean subscribed;
     public Device(String message){
         String lines[] = message.split("\n");
         this.ipAddress = lines[0].split(":")[1];
@@ -211,6 +209,8 @@ class Device{
             this.deviceId=0;
         }
         timeAlive = System.currentTimeMillis();
+        subscribed = false;
+        value = -1;
     }
     public void printDevice(){
         System.out.println(ipAddress);
@@ -235,6 +235,18 @@ class Device{
     }
     public void setTime(long time){
         this.timeAlive = time;
+    }
+    public void setValue(int value){
+        this.value = value;
+    }
+    public int getValue(){
+        return this.value;
+    }
+    public void setSubscribed(boolean subscribed){
+        this.subscribed = subscribed;
+    }
+    public boolean getSubscribed(){
+        return this.subscribed;
     }
     @Override
     public boolean equals(Object o) {
@@ -274,8 +286,7 @@ class Device{
         for(int i=0;i<Controller.deviceList.size();i++){
             if((System.currentTimeMillis() - Controller.deviceList.get(i).getTime()) < 14000){
                 //Server.deviceList.get(i).printDevice();
-                
-
+                // System.out.println("Number of devices:" + Controller.deviceList.size());
             }
             else{
                 Controller.deviceList.remove(i);
@@ -299,6 +310,23 @@ class MqttHelperServer{
             options.setCleanSession(true);
             Controller.client.connect(options);
       }
+        catch (MqttException e) {
+            System.out.println("Error publishing message");
+            e.printStackTrace();
+        }
+    }
+    public static void subscribeToSensors(){
+        try{
+            for(Device i : Controller.deviceList){
+                if(!i.getSubscribed() && i.getCategory().equals("Sensor")){
+                    i.setSubscribed(true);
+                    Controller.client.subscribe("plastenik/biljka" + i.getType(),(topic,message)->{
+                    String mqttMessage = new String(message.getPayload());
+                    i.setValue(Integer.valueOf(mqttMessage));
+                    });
+                }
+            }
+        }
         catch (MqttException e) {
             System.out.println("Error publishing message");
             e.printStackTrace();

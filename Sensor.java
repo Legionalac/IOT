@@ -20,17 +20,18 @@ public class Sensor
     public static String messageNotify="";
     public static String adrress;
     public static boolean MqttInitialized = false;
+    public static String sensorId;
     public static void main(String[] args)  throws InterruptedException
     {
-        if(args.length == 3){
+        if(args.length == 4){
             try
             {
                 String data = SocketFunctionsSensor.getIndexDevice(deviceCategoryList,args[1]);
                 if(args[1].equals("Sensor")){
-                    data = data + "|" + SocketFunctionsSensor.getIndexDevice(deviceTypeSensor,args[2]) + "|0";
+                    data = data + "|" + SocketFunctionsSensor.getIndexDevice(deviceTypeSensor,args[2]) + "|" + args[3];
                 }
                 else if(args[1].equals("Actuator")){
-                    data = data + "|" + SocketFunctionsSensor.getIndexDevice(deviceTypeActuator,args[2]) + "|0";
+                    data = data + "|" + SocketFunctionsSensor.getIndexDevice(deviceTypeActuator,args[2]) + "|" + args[3];
                 }
                 else if(args[1].equals("Controller")){
                     data = data + "|2|0";
@@ -39,6 +40,7 @@ public class Sensor
                     data = data + "|3|0";
                 //adrress = SocketFunctionsSensor.getIpAddress();
                 adrress = args[0];
+                sensorId = args[3];
                 String messageMSearch = 
                     "HOST:"+ adrress +"\n"+
                     "ssdp:msearch\n"+ 
@@ -221,21 +223,21 @@ class MqttHelperSensor{
                 Random rand = new Random();
                 value = rand.nextInt(30 - 10 + 1) + 10;
                 MqttMessage mqttMessage = new MqttMessage(String.valueOf(value).getBytes());
-                Sensor.client.publish("plastenik/biljka/" + type,mqttMessage);
+                Sensor.client.publish("plastenik/biljka/" + type + "/" + Sensor.sensorId,mqttMessage);
                 System.out.println("Current Value" + value);
             }
             else if(type.equals("Humidity")){
                 Random rand = new Random();
                 value = rand.nextInt(101);
                 MqttMessage mqttMessage = new MqttMessage(String.valueOf(value).getBytes());
-                Sensor.client.publish("plastenik/biljka/" + type,mqttMessage);
+                Sensor.client.publish("plastenik/biljka/" + type + "/" + Sensor.sensorId,mqttMessage);
                 System.out.println("Current Value" + value);
             }
             else{
                 Random rand = new Random();
                 value = rand.nextInt(1000);
                 MqttMessage mqttMessage = new MqttMessage(String.valueOf(value).getBytes());
-                Sensor.client.publish("plastenik/biljka/" + type,mqttMessage);
+                Sensor.client.publish("plastenik/biljka/" + type + "/" + Sensor.sensorId,mqttMessage);
                 System.out.println("Current Value" + value);
             }
         }

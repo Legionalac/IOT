@@ -39,7 +39,8 @@ public class Actuator
                 else
                     data = data + "|3|0";
                 deviceType = args[2];
-                adrress = SocketFunctionsActuator.getIpAddress(); 
+                // adrress = SocketFunctionsActuator.getIpAddress(); 
+                adrress = args[0];
                 String messageMSearch = 
                     "HOST:"+ adrress +"\n"+
                     "ssdp:msearch\n"+ 
@@ -49,7 +50,6 @@ public class Actuator
                     "ssdp:notify\n"+
                     "type:sensor\n"+
                     "data:" + data;
-                String mqttData = "20";
                 InetAddress group = InetAddress.getByName("239.255.255.250");
                 int port = 1900;
                 MulticastSocket socket = new MulticastSocket(port);

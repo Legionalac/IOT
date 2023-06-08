@@ -54,7 +54,7 @@ public class Controller
                 SocketFunctionsServer.sendData(messageNotify,group,port,socket);
                 MqttHelperServer.subscribeToSensors();
                 MqttHelperServer.publishToActuators();
-                System.out.println("Number of devices" + deviceList.size());
+                System.out.println("Number of devices:" + deviceList.size());
             }
         }
         catch(SocketException se)
@@ -316,7 +316,7 @@ class MqttHelperServer{
             for(Device i : Controller.deviceList){
                 if(!i.getSubscribed() && i.getCategory().equals("Sensor")){
                     i.setSubscribed(true);
-                    Controller.client.subscribe("plastenik/biljka/" + i.getType(),(topic,message)->{
+                    Controller.client.subscribe("plastenik/biljka/" + i.getType() + "/" + i.getId(),(topic,message)->{
                     String mqttMessage = new String(message.getPayload());
                     i.setValue(Integer.valueOf(mqttMessage));
                     });

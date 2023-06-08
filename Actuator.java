@@ -20,24 +20,26 @@ public class Actuator
     public static String messageNotify="";
     public static String adrress;
     public static boolean MqttInitialized = false;
+    public static String deviceType;
     public static void main(String[] args)  throws InterruptedException
     {
         if(args.length == 3){
             try
             {
-                String data = SocketFunctions.getIndexDevice(deviceCategoryList,args[1]);
+                String data = SocketFunctionsActuator.getIndexDevice(deviceCategoryList,args[1]);
                 if(args[1].equals("Sensor")){
-                    data = data + "|" + SocketFunctions.getIndexDevice(deviceTypeSensor,args[2]) + "|0";
+                    data = data + "|" + SocketFunctionsActuator.getIndexDevice(deviceTypeSensor,args[2]) + "|0";
                 }
                 else if(args[1].equals("Actuator")){
-                    data = data + "|" + SocketFunctions.getIndexDevice(deviceTypeActuator,args[2]) + "|0";
+                    data = data + "|" + SocketFunctionsActuator.getIndexDevice(deviceTypeActuator,args[2]) + "|0";
                 }
                 else if(args[1].equals("Controller")){
                     data = data + "|2|0";
                 }
                 else
                     data = data + "|3|0";
-                adrress = SocketFunctionsServer.getIpAddress(); 
+                deviceType = args[2];
+                adrress = SocketFunctionsActuator.getIpAddress(); 
                 String messageMSearch = 
                     "HOST:"+ adrress +"\n"+
                     "ssdp:msearch\n"+ 
@@ -57,15 +59,15 @@ public class Actuator
                 //this on localhost only (For a subnet set it as 1)
                   
                 socket.joinGroup(group);
-                SocketFunctions.sendData(messageMSearch,group,port,socket);
+                SocketFunctionsActuator.sendData(messageMSearch,group,port,socket);
                 Thread t = new Thread(new
                 ReadThreadActuator(socket,group,port));
                 t.start();
-                SocketFunctions.sendData(messageNotify,group,port,socket);
+                SocketFunctionsActuator.sendData(messageNotify,group,port,socket);
                 while(true)
                 {
                     Thread.sleep(3000);
-                    SocketFunctions.sendData(messageNotify,group,port,socket);
+                    SocketFunctionsActuator.sendData(messageNotify,group,port,socket);
                }
             }
             catch(SocketException se)
@@ -102,7 +104,7 @@ class ReadThreadActuator implements Runnable
     {
         while(true){
 
-            String message = SocketFunctions.recvData(group,port,socket);
+            String message = SocketFunctionsActuator.recvData(group,port,socket);
             String hostIp = message.split("\n")[0].split(":")[1];
             String messageType = message.split("\n")[1].split(":")[1];
             String messageSender = message.split("\n")[2].split(":")[1];
@@ -110,7 +112,7 @@ class ReadThreadActuator implements Runnable
                 
                 if(messageType.equals("msearch")){
                     System.out.println("msearch received");
-                    SocketFunctions.sendData(Actuator.messageNotify,group,port,socket);
+                    SocketFunctionsActuator.sendData(Actuator.messageNotify,group,port,socket);
                     
                 }
                 else if(messageType.equals("notify") && messageSender.equals("controller")){
@@ -119,7 +121,7 @@ class ReadThreadActuator implements Runnable
                     if(!Actuator.MQTT_BROKER.equals("") && !Actuator.MqttInitialized){
                         Actuator.MqttInitialized = true;
                         MqttHelperActuator.initMqtt();
-                        MqttHelperActuator.subscribeToController("plastenik/pumpa");
+                        MqttHelperActuator.subscribeToController("plastenik/biljka/" + Actuator.deviceType);
                     }
                 }
             }
@@ -129,7 +131,7 @@ class ReadThreadActuator implements Runnable
 
 
 }
-class SocketFunctions{
+class SocketFunctionsActuator{
    
     
     public static void sendData(String message, InetAddress group, int port, MulticastSocket socket){
@@ -137,7 +139,6 @@ class SocketFunctions{
             byte[] buffer = message.getBytes();
             DatagramPacket datagram = new DatagramPacket(buffer,buffer.length,group,port);
             socket.send(datagram);
-            System.out.println("Sending data...");
         }
         catch(IOException ie)
         {
@@ -198,7 +199,6 @@ class MqttHelperActuator{
 
     public static void initMqtt(){
         try{
-            System.out.println(Actuator.MQTT_BROKER);
             Actuator.client = new MqttClient(Actuator.MQTT_BROKER, MqttClient.generateClientId());
             MqttConnectOptions options = new MqttConnectOptions();
             options.setCleanSession(true);
@@ -214,7 +214,7 @@ class MqttHelperActuator{
             
             Actuator.client.subscribe(Topic,(topic,controllerMessage) -> {
                 String mqttMessage = new String(controllerMessage.getPayload());
-                System.out.println(mqttMessage);
+                System.out.println("Value received from Controller :" + mqttMessage);
             }); 
         }
         catch(MqttException e){

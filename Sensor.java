@@ -25,19 +25,20 @@ public class Sensor
         if(args.length == 3){
             try
             {
-                String data = SocketFunctions.getIndexDevice(deviceCategoryList,args[1]);
+                String data = SocketFunctionsSensor.getIndexDevice(deviceCategoryList,args[1]);
                 if(args[1].equals("Sensor")){
-                    data = data + "|" + SocketFunctions.getIndexDevice(deviceTypeSensor,args[2]) + "|0";
+                    data = data + "|" + SocketFunctionsSensor.getIndexDevice(deviceTypeSensor,args[2]) + "|0";
                 }
                 else if(args[1].equals("Actuator")){
-                    data = data + "|" + SocketFunctions.getIndexDevice(deviceTypeActuator,args[2]) + "|0";
+                    data = data + "|" + SocketFunctionsSensor.getIndexDevice(deviceTypeActuator,args[2]) + "|0";
                 }
                 else if(args[1].equals("Controller")){
                     data = data + "|2|0";
                 }
                 else
                     data = data + "|3|0";
-                adrress = SocketFunctionsServer.getIpAddress();
+                //adrress = SocketFunctionsSensor.getIpAddress();
+                adrress = args[0];
                 String messageMSearch = 
                     "HOST:"+ adrress +"\n"+
                     "ssdp:msearch\n"+ 
@@ -57,15 +58,15 @@ public class Sensor
                 //this on localhost only (For a subnet set it as 1)
                   
                 socket.joinGroup(group);
-                SocketFunctions.sendData(messageMSearch,group,port,socket);
+                SocketFunctionsSensor.sendData(messageMSearch,group,port,socket);
                 Thread t = new Thread(new
                 ReadThreadSensor(socket,group,port));
                 t.start();
-                SocketFunctions.sendData(messageNotify,group,port,socket);
+                SocketFunctionsSensor.sendData(messageNotify,group,port,socket);
                 while(true)
                 {
                     Thread.sleep(3000);
-                    SocketFunctions.sendData(messageNotify,group,port,socket);
+                    SocketFunctionsSensor.sendData(messageNotify,group,port,socket);
                     if(!Sensor.MQTT_BROKER.equals("")){
                         MqttHelperSensor.sendMqttData(args[2]);
                     }
@@ -109,7 +110,7 @@ class ReadThreadSensor implements Runnable
     {
         while(true){
 
-            String message = SocketFunctions.recvData(group,port,socket);
+            String message = SocketFunctionsSensor.recvData(group,port,socket);
             String hostIp = message.split("\n")[0].split(":")[1];
             String messageType = message.split("\n")[1].split(":")[1];
             String messageSender = message.split("\n")[2].split(":")[1];
@@ -117,7 +118,7 @@ class ReadThreadSensor implements Runnable
                 
                 if(messageType.equals("msearch")){
                     System.out.println("msearch received");
-                    SocketFunctions.sendData(Sensor.messageNotify,group,port,socket);
+                    SocketFunctionsSensor.sendData(Sensor.messageNotify,group,port,socket);
                     
                 }
                 else if(messageType.equals("notify") && messageSender.equals("controller")){
@@ -135,7 +136,7 @@ class ReadThreadSensor implements Runnable
 
 
 }
-class SocketFunctions{
+class SocketFunctionsSensor{
    
     
     public static void sendData(String message, InetAddress group, int port, MulticastSocket socket){
@@ -143,7 +144,6 @@ class SocketFunctions{
             byte[] buffer = message.getBytes();
             DatagramPacket datagram = new DatagramPacket(buffer,buffer.length,group,port);
             socket.send(datagram);
-            System.out.println("Sending data...");
         }
         catch(IOException ie)
         {
@@ -204,12 +204,10 @@ class MqttHelperSensor{
 
     public static void initMqtt(){
         try{
-            System.out.println(Sensor.MQTT_BROKER);
             Sensor.client = new MqttClient(Sensor.MQTT_BROKER, MqttClient.generateClientId());
             MqttConnectOptions options = new MqttConnectOptions();
             options.setCleanSession(true);
             Sensor.client.connect(options);
-            System.out.println(Sensor.client);
       }
         catch (MqttException e) {
             System.out.println("Error publishing message");
@@ -224,21 +222,21 @@ class MqttHelperSensor{
                 value = rand.nextInt(30 - 10 + 1) + 10;
                 MqttMessage mqttMessage = new MqttMessage(String.valueOf(value).getBytes());
                 Sensor.client.publish("plastenik/biljka/" + type,mqttMessage);
-                System.out.println(value);
+                System.out.println("Current Value" + value);
             }
             else if(type.equals("Humidity")){
                 Random rand = new Random();
                 value = rand.nextInt(101);
                 MqttMessage mqttMessage = new MqttMessage(String.valueOf(value).getBytes());
                 Sensor.client.publish("plastenik/biljka/" + type,mqttMessage);
-                System.out.println(value);
+                System.out.println("Current Value" + value);
             }
             else{
                 Random rand = new Random();
                 value = rand.nextInt(1000);
                 MqttMessage mqttMessage = new MqttMessage(String.valueOf(value).getBytes());
                 Sensor.client.publish("plastenik/biljka/" + type,mqttMessage);
-                System.out.println(value);
+                System.out.println("Current Value" + value);
             }
         }
         catch (MqttException e) {

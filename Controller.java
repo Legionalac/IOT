@@ -13,7 +13,6 @@ public class Controller
 {
     public static MqttClient client;
     public static String MQTT_BROKER = "";
-    public static final String MQTT_TOPIC = "plastenik/biljka/Temperature";
     static String messageMSearch;
     static String messageNotify;
     static volatile boolean finished = false;
@@ -46,20 +45,16 @@ public class Controller
             t.start(); 
             SocketFunctionsServer.sendData(messageMSearch,group,port,socket);
             MqttHelperServer.initMqtt();
-            client.subscribe(MQTT_TOPIC,(topic,message)->{
-                String mqttMessage = new String(message.getPayload());
-                System.out.println(mqttMessage);
-            });
             while(true)
             {
                  
                 Thread.sleep(2000);
-                //System.out.println("#####################");  
+                System.out.println("#####################");  
                 Device.printAllDevices();
                 SocketFunctionsServer.sendData(messageNotify,group,port,socket);
-                String message = "aktuatorTest";
-                MqttMessage mqttMessage = new MqttMessage(message.getBytes());
-                Controller.client.publish("plastenik/pumpa",mqttMessage); 
+                MqttHelperServer.subscribeToSensors();
+                MqttHelperServer.publishToActuators();
+                System.out.println("Number of devices" + deviceList.size());
             }
         }
         catch(SocketException se)
@@ -72,10 +67,10 @@ public class Controller
            System.out.println("Error reading/writing from/to socket");
             ie.printStackTrace();
         }
-        catch (MqttException e) {
-            System.out.println("Error publishing message");
-            e.printStackTrace();
-        }
+        // catch (MqttException e) {
+        //     System.out.println("Error publishing message");
+        //     e.printStackTrace();
+        // }
         
     }
 }
@@ -284,9 +279,10 @@ class Device{
     }
     public static void printAllDevices(){
         for(int i=0;i<Controller.deviceList.size();i++){
-            if((System.currentTimeMillis() - Controller.deviceList.get(i).getTime()) < 14000){
-                //Server.deviceList.get(i).printDevice();
-                // System.out.println("Number of devices:" + Controller.deviceList.size());
+            if((System.currentTimeMillis() - Controller.deviceList.get(i).getTime()) < 5000){
+                if(Controller.deviceList.get(i).deviceCategory.equals("Sensor")){
+                    System.out.println("Value of " + Controller.deviceList.get(i).deviceType + " Sensor : " + Controller.deviceList.get(i).getValue());
+                }
             }
             else{
                 Controller.deviceList.remove(i);
@@ -294,10 +290,10 @@ class Device{
             }
             
         }
-        String output ="";
-        for(int i=0;i<Controller.deviceList.size();i++){
-            output = output + Controller.deviceList.get(i).getCategory() + " " + Controller.deviceList.get(i).getType() + "\n";
-        }
+        // String output ="";
+        // for(int i=0;i<Controller.deviceList.size();i++){
+        //     output = output + Controller.deviceList.get(i).getCategory() + " " + Controller.deviceList.get(i).getType() + "\n";
+        // }
     }
 
 }
@@ -320,7 +316,7 @@ class MqttHelperServer{
             for(Device i : Controller.deviceList){
                 if(!i.getSubscribed() && i.getCategory().equals("Sensor")){
                     i.setSubscribed(true);
-                    Controller.client.subscribe("plastenik/biljka" + i.getType(),(topic,message)->{
+                    Controller.client.subscribe("plastenik/biljka/" + i.getType(),(topic,message)->{
                     String mqttMessage = new String(message.getPayload());
                     i.setValue(Integer.valueOf(mqttMessage));
                     });
@@ -331,5 +327,67 @@ class MqttHelperServer{
             System.out.println("Error publishing message");
             e.printStackTrace();
         }
+    }
+    public static void publishToActuators(){
+        List<Integer> tempValues = new ArrayList<Integer>();
+        List<Integer> humidityValues= new ArrayList<Integer>();
+        List<Integer> lightValues= new ArrayList<Integer>();
+        int tempAverage = 0;
+        int humidityAverage = 0;
+        int lightAverage = 0;
+        for(Device i: Controller.deviceList){
+            if(i.getCategory().equals("Sensor")){
+                if(i.getType().equals("Temperature")){
+                    tempValues.add(i.getValue());
+                }
+                else if(i.getType().equals("Humidity")){
+                    humidityValues.add(i.getValue());
+                }
+                else{
+                    lightValues.add(i.getValue());
+                }
+            }
+        }
+        for(int x:tempValues){
+            tempAverage += x;
+        }
+        if(tempValues.size() > 0){
+            tempAverage /= tempValues.size();
+        }
+        for(int x:humidityValues){
+            humidityAverage += x;
+        }
+        if(humidityValues.size()>0){
+            humidityAverage /= humidityValues.size();
+        }
+        for(int x:lightValues){
+            lightAverage += x;
+        }
+        if(lightValues.size() > 0){
+            lightAverage /= lightValues.size();
+        }
+        try{
+            for(Device i : Controller.deviceList){
+                if(i.getCategory().equals("Actuator")){
+                    if(i.getType().equals("Fan") && tempAverage > 0){
+                        MqttMessage mqttMessage = new MqttMessage(String.valueOf(tempAverage).getBytes());
+                        Controller.client.publish("plastenik/biljka/" + i.getType(), mqttMessage);
+                    }
+                    else if(i.getType().equals("Pump") && humidityAverage > 0){
+                        MqttMessage mqttMessage = new MqttMessage(String.valueOf(humidityAverage).getBytes());
+                        Controller.client.publish("plastenik/biljka/" + i.getType(), mqttMessage);
+                    }
+                    else if(lightAverage > 0){
+                        MqttMessage mqttMessage = new MqttMessage(String.valueOf(lightAverage).getBytes());
+                        Controller.client.publish("plastenik/biljka/" + i.getType(), mqttMessage);
+                    }
+                }
+            }
+        }
+        catch (MqttException e) {
+            System.out.println("Error publishing message");
+            e.printStackTrace();
+        }
+
     }
 }

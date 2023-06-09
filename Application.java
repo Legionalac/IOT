@@ -8,48 +8,49 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-public class Actuator 
+public class Application 
 {
     public static String MQTT_BROKER = "";
     public static final String MQTT_TOPIC = "device/status";
     public static MqttClient client;
-    public static final String deviceCategoryList[] = new String[]{"Sensor","Actuator","Controller","Aplication"};
+    public static final String deviceCategoryList[] = new String[]{"Sensor","Actuator","Controller","Application"};
     public static final String deviceTypeSensor[] = new String[]{"Temperature","Humidity","Light"};
     public static final String deviceTypeActuator[] = new String[]{"Fan","Pump","Light"};
     static volatile boolean finished = false;
     public static String messageNotify="";
     public static String adrress;
     public static boolean MqttInitialized = false;
-    public static String deviceType;
+    public static String sensorId;
     public static void main(String[] args)  throws InterruptedException
     {
-        if(args.length == 3){
+        if(args.length == 2){
             try
             {
-                String data = SocketFunctionsActuator.getIndexDevice(deviceCategoryList,args[1]);
+                String data = SocketFunctionsApplication.getIndexDevice(deviceCategoryList,args[1]);
+                System.out.println(data);
                 if(args[1].equals("Sensor")){
-                    data = data + "|" + SocketFunctionsActuator.getIndexDevice(deviceTypeSensor,args[2]) + "|0";
+                    data = data + "|" + SocketFunctionsApplication.getIndexDevice(deviceTypeSensor,args[2]) + "|" + args[3];
                 }
                 else if(args[1].equals("Actuator")){
-                    data = data + "|" + SocketFunctionsActuator.getIndexDevice(deviceTypeActuator,args[2]) + "|0";
+                    data = data + "|" + SocketFunctionsApplication.getIndexDevice(deviceTypeActuator,args[2]) + "|" + args[3];
                 }
                 else if(args[1].equals("Controller")){
                     data = data + "|2|0";
                 }
                 else
                     data = data + "|3|0";
-                deviceType = args[2];
-                // adrress = SocketFunctionsActuator.getIpAddress(); 
+                //adrress = SocketFunctionsSensor.getIpAddress();
                 adrress = args[0];
                 String messageMSearch = 
                     "HOST:"+ adrress +"\n"+
                     "ssdp:msearch\n"+ 
-                    "type:Actuator";
+                    "type:Application";
                 messageNotify = 
                     "HOST:" + adrress + "\n"+
                     "ssdp:notify\n"+
-                    "type:Actuator\n"+
+                    "type:Application\n"+
                     "data:" + data;
+                String mqttData = "20";
                 InetAddress group = InetAddress.getByName("239.255.255.250");
                 int port = 1900;
                 MulticastSocket socket = new MulticastSocket(port);
@@ -59,16 +60,19 @@ public class Actuator
                 //this on localhost only (For a subnet set it as 1)
                   
                 socket.joinGroup(group);
-                SocketFunctionsActuator.sendData(messageMSearch,group,port,socket);
+                SocketFunctionsApplication.sendData(messageMSearch,group,port,socket);
                 Thread t = new Thread(new
-                ReadThreadActuator(socket,group,port));
+                ReadThreadApplication(socket,group,port));
                 t.start();
-                SocketFunctionsActuator.sendData(messageNotify,group,port,socket);
+                SocketFunctionsApplication.sendData(messageNotify,group,port,socket);
                 while(true)
                 {
                     Thread.sleep(3000);
-                    SocketFunctionsActuator.sendData(messageNotify,group,port,socket);
-               }
+                    SocketFunctionsApplication.sendData(messageNotify,group,port,socket);
+                    if(!Application.MQTT_BROKER.equals("")){
+                        MqttHelperApplication.sendMqttData();
+                    }
+                }
             }
             catch(SocketException se)
             {
@@ -80,19 +84,23 @@ public class Actuator
                 System.out.println("Error reading/writing from/to socket");
                 ie.printStackTrace();
             }
+            // catch (MqttException e) {
+            //     System.out.println("Error publishing message");
+            //     e.printStackTrace();
+            // }
         }
         else
             return ;
     }
     
 }
-class ReadThreadActuator implements Runnable
+class ReadThreadApplication implements Runnable
 {
     private MulticastSocket socket;
     private InetAddress group;
     private int port;
     public static final int MAX_LEN = 1000;
-    ReadThreadActuator(MulticastSocket socket,InetAddress group,int port)
+    ReadThreadApplication(MulticastSocket socket,InetAddress group,int port)
     {
         this.socket = socket;
         this.group = group;
@@ -104,24 +112,24 @@ class ReadThreadActuator implements Runnable
     {
         while(true){
 
-            String message = SocketFunctionsActuator.recvData(group,port,socket);
+            String message = SocketFunctionsApplication.recvData(group,port,socket);
             String hostIp = message.split("\n")[0].split(":")[1];
             String messageType = message.split("\n")[1].split(":")[1];
             String messageSender = message.split("\n")[2].split(":")[1];
-            if(!messageSender.equals("Actuator")){
+            if(!messageSender.equals("sensor")){
                 
                 if(messageType.equals("msearch")){
                     System.out.println("msearch received");
-                    SocketFunctionsActuator.sendData(Actuator.messageNotify,group,port,socket);
+                    SocketFunctionsApplication.sendData(Application.messageNotify,group,port,socket);
                     
                 }
                 else if(messageType.equals("notify") && messageSender.equals("controller")){
-                    Actuator.MQTT_BROKER = "tcp://"+hostIp+":4000";
-                    //Actuator.MQTT_BROKER = "tcp://localhost:4000";
-                    if(!Actuator.MQTT_BROKER.equals("") && !Actuator.MqttInitialized){
-                        Actuator.MqttInitialized = true;
-                        MqttHelperActuator.initMqtt();
-                        MqttHelperActuator.subscribeToController("plastenik/biljka/" + Actuator.deviceType);
+                    Application.MQTT_BROKER = "tcp://"+hostIp+":4000";
+                    //Sensor.MQTT_BROKER = "tcp://localhost:4000";
+                    if(!Application.MQTT_BROKER.equals("") && !Application.MqttInitialized){
+                        Application.MqttInitialized = true;
+                        MqttHelperApplication.initMqtt();
+                        MqttHelperApplication.subscribeToController();
                     }
                 }
             }
@@ -131,7 +139,7 @@ class ReadThreadActuator implements Runnable
 
 
 }
-class SocketFunctionsActuator{
+class SocketFunctionsApplication{
    
     
     public static void sendData(String message, InetAddress group, int port, MulticastSocket socket){
@@ -149,7 +157,7 @@ class SocketFunctionsActuator{
     }
     public static String recvData(InetAddress group, int port, MulticastSocket socket){
             String message = "";
-            byte[] buffer = new byte[ReadThreadActuator.MAX_LEN];
+            byte[] buffer = new byte[ReadThreadApplication.MAX_LEN];
             DatagramPacket datagram = new
             DatagramPacket(buffer,buffer.length,group,port);
             try
@@ -195,26 +203,47 @@ class SocketFunctionsActuator{
         return "";
   }
 }
-class MqttHelperActuator{
+class MqttHelperApplication{
 
     public static void initMqtt(){
         try{
-            Actuator.client = new MqttClient(Actuator.MQTT_BROKER, MqttClient.generateClientId());
+            Application.client = new MqttClient(Application.MQTT_BROKER, MqttClient.generateClientId());
             MqttConnectOptions options = new MqttConnectOptions();
             options.setCleanSession(true);
-            Actuator.client.connect(options);
+            Application.client.connect(options);
       }
         catch (MqttException e) {
             System.out.println("Error publishing message");
             e.printStackTrace();
         }
     }
-    public static void subscribeToController(String Topic){
+    public static void sendMqttData(){
+        try{
+            String message = "25";
+            MqttMessage mqttMessage = new MqttMessage(message.getBytes());
+            Application.client.publish("plastenik/biljka/aplikacija/Temperature", mqttMessage); 
+            Application.client.publish("plastenik/biljka/aplikacija/Humidity", mqttMessage); 
+            Application.client.publish("plastenik/biljka/aplikacija/Light", mqttMessage); 
+        }
+        catch (MqttException e) {
+            System.out.println("Error publishing message");
+            e.printStackTrace();
+        }
+    }
+    public static void subscribeToController(){
         try{
             
-            Actuator.client.subscribe(Topic,(topic,controllerMessage) -> {
+            Application.client.subscribe("plastenik/biljka/kontroler/Temperature",(topic,controllerMessage) -> {
                 String mqttMessage = new String(controllerMessage.getPayload());
-                System.out.println("Value received from Controller :" + mqttMessage);
+                System.out.println("Value received from Controller for Temp :" + mqttMessage);
+            }); 
+            Application.client.subscribe("plastenik/biljka/kontroler/Humidity",(topic,controllerMessage) -> {
+                String mqttMessage = new String(controllerMessage.getPayload());
+                System.out.println("Value received from Controller for Humidity :" + mqttMessage);
+            }); 
+            Application.client.subscribe("plastenik/biljka/kontroler/Light",(topic,controllerMessage) -> {
+                String mqttMessage = new String(controllerMessage.getPayload());
+                System.out.println("Value received from Controller for Light :" + mqttMessage);
             }); 
         }
         catch(MqttException e){
@@ -222,3 +251,4 @@ class MqttHelperActuator{
         }
     }
 }
+

@@ -1,4 +1,5 @@
 import org.eclipse.paho.client.mqttv3.*;
+import javax.swing.*;
 import java.net.*;
 import java.io.*;
 import java.util.*;
@@ -18,11 +19,25 @@ public class Controller
     static volatile boolean finished = false;
     public static  ArrayList<Device> deviceList;
     public static String adrress;
+    public static JFrame frame;
+    public static JPanel panel;
+    public static JLabel numberOfDevices;
     public static void main(String[] args) throws InterruptedException
     {
     
         try
         {
+            frame = new JFrame("Controller");
+            panel = new JPanel();
+            numberOfDevices = new JLabel();
+            panel.setLayout(new BoxLayout(panel,BoxLayout.Y_AXIS));
+            panel.add(numberOfDevices);
+            frame.add(panel);
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setSize(400,400); 
+            frame.setVisible(true);
+
+
             adrress = SocketFunctionsServer.getIpAddress();
             MQTT_BROKER = "tcp://" + adrress + ":4000";
             messageMSearch = 
@@ -45,6 +60,7 @@ public class Controller
             t.start(); 
             SocketFunctionsServer.sendData(messageMSearch,group,port,socket);
             MqttHelperServer.initMqtt();
+            MqttHelperServer.subscribeToApplication();
             while(true)
             {
                  
@@ -149,7 +165,7 @@ class SocketFunctionsServer{
         
     }
     public static String getIpAddress(){
-        final Pattern pattern = Pattern.compile("192", Pattern.CASE_INSENSITIVE);
+        final Pattern pattern = Pattern.compile("147", Pattern.CASE_INSENSITIVE);
         try{ 
             Enumeration en = NetworkInterface.getNetworkInterfaces(); 
             while (en.hasMoreElements()) { 
@@ -172,7 +188,7 @@ class SocketFunctionsServer{
 }
 
 class Device{
-    public static final String deviceCategoryList[] = new String[]{"Sensor","Actuator","Controller","Aplication"};
+    public static final String deviceCategoryList[] = new String[]{"Sensor","Actuator","Controller","Application"};
     public static final String deviceTypeSensor[] = new String[]{"Temperature","Humidity","Light"};
     public static final String deviceTypeActuator[] = new String[]{"Fan","Pump","Light"};
     private String ipAddress;
@@ -182,6 +198,7 @@ class Device{
     private long timeAlive;
     private int value;
     private boolean subscribed;
+    public JLabel textView;
     public Device(String message){
         String lines[] = message.split("\n");
         this.ipAddress = lines[0].split(":")[1];
@@ -200,18 +217,22 @@ class Device{
             this.deviceId = Integer.parseInt(data[2]);
         }
         else{
-            this.deviceType = "Controller/Aplication";
+            this.deviceType = "Application";
             this.deviceId=0;
         }
         timeAlive = System.currentTimeMillis();
         subscribed = false;
         value = -1;
+        textView = new JLabel();
     }
     public void printDevice(){
         System.out.println(ipAddress);
         System.out.println(deviceCategory);
         System.out.println(deviceType);
         System.out.println(deviceId);
+    }
+    public JLabel getLabel(){
+        return textView;
     }
     public String getCategory(){
         return this.deviceCategory;
@@ -285,6 +306,9 @@ class Device{
                 }
             }
             else{
+                Controller.panel.remove(Controller.deviceList.get(i).getLabel());
+                Controller.panel.revalidate();
+                Controller.panel.repaint();
                 Controller.deviceList.remove(i);
                 i--;
             }
@@ -294,6 +318,7 @@ class Device{
         // for(int i=0;i<Controller.deviceList.size();i++){
         //     output = output + Controller.deviceList.get(i).getCategory() + " " + Controller.deviceList.get(i).getType() + "\n";
         // }
+        Controller.numberOfDevices.setText("Number of devices:" + Controller.deviceList.size());
     }
 
 }
@@ -316,12 +341,38 @@ class MqttHelperServer{
             for(Device i : Controller.deviceList){
                 if(!i.getSubscribed() && i.getCategory().equals("Sensor")){
                     i.setSubscribed(true);
+                    Controller.panel.add(i.getLabel());
+                    Controller.panel.revalidate();
+                    Controller.panel.repaint();
                     Controller.client.subscribe("plastenik/biljka/" + i.getType() + "/" + i.getId(),(topic,message)->{
-                    String mqttMessage = new String(message.getPayload());
-                    i.setValue(Integer.valueOf(mqttMessage));
-                    });
+                        String mqttMessage = new String(message.getPayload());
+                        i.setValue(Integer.valueOf(mqttMessage));
+                        i.getLabel().setText("Value from " + i.getType() + " Sensor : " + mqttMessage);
+                        //Controller.frame.revalidate();
+                        // Controller.frame.repaint();
+                        });
                 }
             }
+        }
+        catch (MqttException e) {
+            System.out.println("Error publishing message");
+            e.printStackTrace();
+        }
+    }
+    public static void subscribeToApplication(){
+        try{
+            Controller.client.subscribe("plastenik/biljka/aplikacija/Temperature" , (topic, message) -> {
+                String mqttMessage = new String(message.getPayload());
+                System.out.println("Temp from application" + mqttMessage);
+            });
+            Controller.client.subscribe("plastenik/biljka/aplikacija/Humidity" , (topic, message) -> {
+                String mqttMessage = new String(message.getPayload());
+                System.out.println("Humidity from application" + mqttMessage);
+            });
+            Controller.client.subscribe("plastenik/biljka/aplikacija/Light" , (topic, message) -> {
+                String mqttMessage = new String(message.getPayload());
+                System.out.println("Light from application" + mqttMessage);
+            });
         }
         catch (MqttException e) {
             System.out.println("Error publishing message");
@@ -383,6 +434,12 @@ class MqttHelperServer{
                     }
                 }
             }
+            MqttMessage mqttTemp =  new MqttMessage(String.valueOf(tempAverage).getBytes());
+            MqttMessage mqttHumidity=  new MqttMessage(String.valueOf(humidityAverage).getBytes());
+            MqttMessage mqttLight=  new MqttMessage(String.valueOf(lightAverage).getBytes());
+            Controller.client.publish("plastenik/biljka/kontroler/Temperature", mqttTemp);
+            Controller.client.publish("plastenik/biljka/kontroler/Humidity", mqttHumidity);
+            Controller.client.publish("plastenik/biljka/kontroler/Light", mqttLight);
         }
         catch (MqttException e) {
             System.out.println("Error publishing message");

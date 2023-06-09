@@ -165,7 +165,7 @@ class SocketFunctionsServer{
         
     }
     public static String getIpAddress(){
-        final Pattern pattern = Pattern.compile("147", Pattern.CASE_INSENSITIVE);
+        final Pattern pattern = Pattern.compile("192", Pattern.CASE_INSENSITIVE);
         try{ 
             Enumeration en = NetworkInterface.getNetworkInterfaces(); 
             while (en.hasMoreElements()) { 

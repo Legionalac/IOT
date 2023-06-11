@@ -8,6 +8,12 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import javax.swing.*;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
 public class Application 
 {
     public static String MQTT_BROKER = "";
@@ -26,6 +32,8 @@ public class Application
         if(args.length == 2){
             try
             {
+                ApplicationGUI.drawNewFrame("Application");
+
                 String data = SocketFunctionsApplication.getIndexDevice(deviceCategoryList,args[1]);
                 System.out.println(data);
                 if(args[1].equals("Sensor")){
@@ -219,11 +227,15 @@ class MqttHelperApplication{
     }
     public static void sendMqttData(){
         try{
-            String message = "25";
-            MqttMessage mqttMessage = new MqttMessage(message.getBytes());
-            Application.client.publish("plastenik/biljka/aplikacija/Temperature", mqttMessage); 
-            Application.client.publish("plastenik/biljka/aplikacija/Humidity", mqttMessage); 
-            Application.client.publish("plastenik/biljka/aplikacija/Light", mqttMessage); 
+            String messageTemp = ApplicationGUI.getUserTemp();
+            String messageHumid = ApplicationGUI.getUserHumidity();
+            String messageLight = ApplicationGUI.getUserLight();
+            MqttMessage mqttMessageTemp = new MqttMessage(messageTemp.getBytes());
+            MqttMessage mqttMessageHumid = new MqttMessage(messageHumid.getBytes());
+            MqttMessage mqttMessageLight = new MqttMessage(messageLight.getBytes());
+            Application.client.publish("plastenik/biljka/aplikacija/Temperature", mqttMessageTemp); 
+            Application.client.publish("plastenik/biljka/aplikacija/Humidity", mqttMessageHumid); 
+            Application.client.publish("plastenik/biljka/aplikacija/Light", mqttMessageLight); 
         }
         catch (MqttException e) {
             System.out.println("Error publishing message");
@@ -235,15 +247,18 @@ class MqttHelperApplication{
             
             Application.client.subscribe("plastenik/biljka/kontroler/Temperature",(topic,controllerMessage) -> {
                 String mqttMessage = new String(controllerMessage.getPayload());
-                System.out.println("Value received from Controller for Temp :" + mqttMessage);
+                //System.out.println("Value received from Controller for Temp : " + mqttMessage);
+                ApplicationGUI.printTempOnFrame(mqttMessage);
             }); 
             Application.client.subscribe("plastenik/biljka/kontroler/Humidity",(topic,controllerMessage) -> {
                 String mqttMessage = new String(controllerMessage.getPayload());
-                System.out.println("Value received from Controller for Humidity :" + mqttMessage);
+                //System.out.println("Value received from Controller for Humidity : " + mqttMessage);
+                ApplicationGUI.printHumidityOnFrame(mqttMessage);
             }); 
             Application.client.subscribe("plastenik/biljka/kontroler/Light",(topic,controllerMessage) -> {
                 String mqttMessage = new String(controllerMessage.getPayload());
-                System.out.println("Value received from Controller for Light :" + mqttMessage);
+                //System.out.println("Value received from Controller for Light : " + mqttMessage);
+                ApplicationGUI.printLightOnFrame(mqttMessage);
             }); 
         }
         catch(MqttException e){
@@ -251,4 +266,119 @@ class MqttHelperApplication{
         }
     }
 }
+class ApplicationGUI implements ItemListener, ChangeListener{
+    public static JFrame frame;
+    public static JPanel panel;
+    public static JLabel temperatureLabel;
+    public static JLabel humidityLabel;
+    public static JLabel lightLabel;
+    public static JLabel setTempLabel;
+    public static JLabel setHumidityLabel;
+    public static JLabel setLightLabel;
+    public static JSlider tempSlider;
+    public static JSlider humiditySlider;
+    public static JToggleButton lightToggle;
+    public static String tempValue = "-1";
+    public static String humidValue = "-1";
+    public static String lightValue = "-1";
 
+    public static void drawNewFrame(String name){
+        frame = new JFrame(name);
+        panel = new JPanel();
+        temperatureLabel = new JLabel();
+        humidityLabel = new JLabel();
+        lightLabel = new JLabel();
+        setTempLabel = new JLabel();
+        setHumidityLabel = new JLabel();
+        setLightLabel = new JLabel();
+
+        tempSlider = DrawSlider(15, 40, 25, 5);
+        humiditySlider = DrawSlider(0, 100, 50, 10);
+        
+        panel.setLayout(new BoxLayout(panel,BoxLayout.Y_AXIS));
+        panel.add(temperatureLabel);
+        panel.add(humidityLabel);
+        panel.add(lightLabel);
+        panel.add(setTempLabel);
+        panel.add(tempSlider);
+        panel.add(setHumidityLabel);
+        panel.add(humiditySlider);
+        panel.add(setLightLabel);
+        setJToggleButton();
+        setAction();
+        frame.add(panel);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(400,400); 
+        frame.setVisible(true);
+
+    }
+
+    @Override
+    public void itemStateChanged(ItemEvent e){
+        if(lightToggle.isSelected()){
+            lightToggle.setText("ON");
+            lightValue = "ON";
+        }else{
+            lightToggle.setText("OFF");
+            lightValue = "OFF";
+        }
+    }
+
+    @Override
+    public void stateChanged(ChangeEvent e){
+        if(e.getSource() == humiditySlider){
+            humidValue = String.valueOf(humiditySlider.getValue());
+        }else if(e.getSource() == tempSlider){
+            tempValue = String.valueOf(tempSlider.getValue());
+        }
+    }
+
+    private static void setJToggleButton(){
+        lightToggle = new JToggleButton("OFF");
+        lightToggle.setBounds(150, 150, 150, 50);
+        panel.add(lightToggle);
+    }
+
+    private static void setAction(){
+        lightToggle.addItemListener(new ApplicationGUI());
+        tempSlider.addChangeListener(new ApplicationGUI());
+        humiditySlider.addChangeListener(new ApplicationGUI());
+    }
+
+    private static JSlider DrawSlider(int min, int max, int value, int majorTick){
+        JSlider slider = new JSlider(JSlider.HORIZONTAL, min, max, value);
+        slider.setMinorTickSpacing(1);  
+        slider.setMajorTickSpacing(majorTick);         
+        slider.setPaintTicks(true);         
+        slider.setPaintLabels(true);        
+        
+        return slider;
+    }
+
+    public static void printTempOnFrame(String value){
+        temperatureLabel.setText("Current temp value: " + value);
+        setTempLabel.setText("Set the temperature(C): ");
+    }
+    public static void printHumidityOnFrame(String value){
+        humidityLabel.setText("Current humidity value: " + value);
+        setHumidityLabel.setText("Set the humidity(%): ");
+    }
+    public static void printLightOnFrame(String value){
+        lightLabel.setText("Current light value: " + value);
+        setLightLabel.setText("Toggle light ON/OFF: ");
+    }
+
+    public static String getUserTemp(){
+        System.out.println("User set this temp: " + tempValue);
+        return tempValue;
+    }
+    public static String getUserHumidity(){
+        System.out.println("User set this humidity: " + humidValue);
+        return humidValue;
+    }
+    public static String getUserLight(){
+        System.out.println("User set this light: " + lightValue);
+        return lightValue;
+    }
+
+}

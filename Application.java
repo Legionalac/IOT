@@ -317,10 +317,10 @@ class ApplicationGUI implements ItemListener, ChangeListener{
     public void itemStateChanged(ItemEvent e){
         if(lightToggle.isSelected()){
             lightToggle.setText("ON");
-            lightValue = "ON";
+            lightValue = "1";
         }else{
             lightToggle.setText("OFF");
-            lightValue = "OFF";
+            lightValue = "0";
         }
     }
 

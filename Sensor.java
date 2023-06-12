@@ -113,22 +113,24 @@ class ReadThreadSensor implements Runnable
         while(true){
 
             String message = SocketFunctionsSensor.recvData(group,port,socket);
-            String hostIp = message.split("\n")[0].split(":")[1];
-            String messageType = message.split("\n")[1].split(":")[1];
-            String messageSender = message.split("\n")[2].split(":")[1];
-            if(!messageSender.equals("sensor")){
-                
-                if(messageType.equals("msearch")){
-                    System.out.println("msearch received");
-                    SocketFunctionsSensor.sendData(Sensor.messageNotify,group,port,socket);
-                    
-                }
-                else if(messageType.equals("notify") && messageSender.equals("controller")){
-                    Sensor.MQTT_BROKER = "tcp://"+hostIp+":4000";
-                    //Sensor.MQTT_BROKER = "tcp://localhost:4000";
-                    if(!Sensor.MQTT_BROKER.equals("") && !Sensor.MqttInitialized){
-                        Sensor.MqttInitialized = true;
-                        MqttHelperSensor.initMqtt();
+            int numberOfLines = message.split("\n").length;
+            if(numberOfLines < 5){
+                String hostIp = message.split("\n")[0].split(":")[1];
+                String messageType = message.split("\n")[1].split(":")[1];
+                String messageSender = message.split("\n")[2].split(":")[1];
+                if (!messageSender.equals("sensor")) {
+
+                    if (messageType.equals("msearch")) {
+                        System.out.println("msearch received");
+                        SocketFunctionsSensor.sendData(Sensor.messageNotify, group, port, socket);
+
+                    } else if (messageType.equals("notify") && messageSender.equals("controller")) {
+                        Sensor.MQTT_BROKER = "tcp://" + hostIp + ":4000";
+                        // Sensor.MQTT_BROKER = "tcp://localhost:4000";
+                        if (!Sensor.MQTT_BROKER.equals("") && !Sensor.MqttInitialized) {
+                            Sensor.MqttInitialized = true;
+                            MqttHelperSensor.initMqtt();
+                        }
                     }
                 }
             }
@@ -206,7 +208,7 @@ class MqttHelperSensor{
 
     public static void initMqtt(){
         try{
-            Sensor.client = new MqttClient(Sensor.MQTT_BROKER, MqttClient.generateClientId());
+            Sensor.client = new MqttClient(Sensor.MQTT_BROKER, MqttClient.generateClientId() , null);
             MqttConnectOptions options = new MqttConnectOptions();
             options.setCleanSession(true);
             Sensor.client.connect(options);

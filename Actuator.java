@@ -105,23 +105,25 @@ class ReadThreadActuator implements Runnable
         while(true){
 
             String message = SocketFunctionsActuator.recvData(group,port,socket);
-            String hostIp = message.split("\n")[0].split(":")[1];
-            String messageType = message.split("\n")[1].split(":")[1];
-            String messageSender = message.split("\n")[2].split(":")[1];
-            if(!messageSender.equals("Actuator")){
-                
-                if(messageType.equals("msearch")){
-                    System.out.println("msearch received");
-                    SocketFunctionsActuator.sendData(Actuator.messageNotify,group,port,socket);
-                    
-                }
-                else if(messageType.equals("notify") && messageSender.equals("controller")){
-                    Actuator.MQTT_BROKER = "tcp://"+hostIp+":4000";
-                    //Actuator.MQTT_BROKER = "tcp://localhost:4000";
-                    if(!Actuator.MQTT_BROKER.equals("") && !Actuator.MqttInitialized){
-                        Actuator.MqttInitialized = true;
-                        MqttHelperActuator.initMqtt();
-                        MqttHelperActuator.subscribeToController("plastenik/biljka/" + Actuator.deviceType);
+            int numberOfLines = message.split("\n").length;
+            if(numberOfLines < 5){
+                String hostIp = message.split("\n")[0].split(":")[1];
+                String messageType = message.split("\n")[1].split(":")[1];
+                String messageSender = message.split("\n")[2].split(":")[1];
+                if (!messageSender.equals("Actuator")) {
+
+                    if (messageType.equals("msearch")) {
+                        System.out.println("msearch received");
+                        SocketFunctionsActuator.sendData(Actuator.messageNotify, group, port, socket);
+
+                    } else if (messageType.equals("notify") && messageSender.equals("controller")) {
+                        Actuator.MQTT_BROKER = "tcp://" + hostIp + ":4000";
+                        // Actuator.MQTT_BROKER = "tcp://localhost:4000";
+                        if (!Actuator.MQTT_BROKER.equals("") && !Actuator.MqttInitialized) {
+                            Actuator.MqttInitialized = true;
+                            MqttHelperActuator.initMqtt();
+                            MqttHelperActuator.subscribeToController("plastenik/biljka/" + Actuator.deviceType);
+                        }
                     }
                 }
             }
@@ -199,7 +201,7 @@ class MqttHelperActuator{
 
     public static void initMqtt(){
         try{
-            Actuator.client = new MqttClient(Actuator.MQTT_BROKER, MqttClient.generateClientId());
+            Actuator.client = new MqttClient(Actuator.MQTT_BROKER, MqttClient.generateClientId(), null);
             MqttConnectOptions options = new MqttConnectOptions();
             options.setCleanSession(true);
             Actuator.client.connect(options);

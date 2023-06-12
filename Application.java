@@ -121,23 +121,25 @@ class ReadThreadApplication implements Runnable
         while(true){
 
             String message = SocketFunctionsApplication.recvData(group,port,socket);
-            String hostIp = message.split("\n")[0].split(":")[1];
-            String messageType = message.split("\n")[1].split(":")[1];
-            String messageSender = message.split("\n")[2].split(":")[1];
-            if(!messageSender.equals("sensor")){
-                
-                if(messageType.equals("msearch")){
-                    System.out.println("msearch received");
-                    SocketFunctionsApplication.sendData(Application.messageNotify,group,port,socket);
-                    
-                }
-                else if(messageType.equals("notify") && messageSender.equals("controller")){
-                    Application.MQTT_BROKER = "tcp://"+hostIp+":4000";
-                    //Sensor.MQTT_BROKER = "tcp://localhost:4000";
-                    if(!Application.MQTT_BROKER.equals("") && !Application.MqttInitialized){
-                        Application.MqttInitialized = true;
-                        MqttHelperApplication.initMqtt();
-                        MqttHelperApplication.subscribeToController();
+            int numberOfLines = message.split("\n").length;
+            if(numberOfLines < 5){
+                String hostIp = message.split("\n")[0].split(":")[1];
+                String messageType = message.split("\n")[1].split(":")[1];
+                String messageSender = message.split("\n")[2].split(":")[1];
+                if (!messageSender.equals("sensor")) {
+
+                    if (messageType.equals("msearch")) {
+                        System.out.println("msearch received");
+                        SocketFunctionsApplication.sendData(Application.messageNotify, group, port, socket);
+
+                    } else if (messageType.equals("notify") && messageSender.equals("controller")) {
+                        Application.MQTT_BROKER = "tcp://" + hostIp + ":4000";
+                        // Sensor.MQTT_BROKER = "tcp://localhost:4000";
+                        if (!Application.MQTT_BROKER.equals("") && !Application.MqttInitialized) {
+                            Application.MqttInitialized = true;
+                            MqttHelperApplication.initMqtt();
+                            MqttHelperApplication.subscribeToController();
+                        }
                     }
                 }
             }
@@ -215,7 +217,7 @@ class MqttHelperApplication{
 
     public static void initMqtt(){
         try{
-            Application.client = new MqttClient(Application.MQTT_BROKER, MqttClient.generateClientId());
+            Application.client = new MqttClient(Application.MQTT_BROKER, MqttClient.generateClientId(),null);
             MqttConnectOptions options = new MqttConnectOptions();
             options.setCleanSession(true);
             Application.client.connect(options);

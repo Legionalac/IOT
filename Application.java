@@ -278,6 +278,7 @@ class ApplicationGUI implements ItemListener, ChangeListener{
     public static JSlider tempSlider;
     public static JSlider humiditySlider;
     public static JToggleButton lightToggle;
+    public static JSlider lightSlider;
     public static String tempValue = "-1";
     public static String humidValue = "-1";
     public static String lightValue = "-1";
@@ -294,6 +295,7 @@ class ApplicationGUI implements ItemListener, ChangeListener{
 
         tempSlider = DrawSlider(15, 40, 25, 5);
         humiditySlider = DrawSlider(0, 100, 50, 10);
+        lightSlider = DrawSlider(0, 100, 50, 10);
         
         panel.setLayout(new BoxLayout(panel,BoxLayout.Y_AXIS));
         panel.add(temperatureLabel);
@@ -304,7 +306,8 @@ class ApplicationGUI implements ItemListener, ChangeListener{
         panel.add(setHumidityLabel);
         panel.add(humiditySlider);
         panel.add(setLightLabel);
-        setJToggleButton();
+        panel.add(lightSlider);
+        //setJToggleButton();
         setAction();
         frame.add(panel);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -330,6 +333,8 @@ class ApplicationGUI implements ItemListener, ChangeListener{
             humidValue = String.valueOf(humiditySlider.getValue());
         }else if(e.getSource() == tempSlider){
             tempValue = String.valueOf(tempSlider.getValue());
+        }else{
+            lightSlider = String.valueOf(lightSlider.getValue());
         }
     }
 
@@ -340,9 +345,11 @@ class ApplicationGUI implements ItemListener, ChangeListener{
     }
 
     private static void setAction(){
-        lightToggle.addItemListener(new ApplicationGUI());
+        //lightToggle.addItemListener(new ApplicationGUI());
         tempSlider.addChangeListener(new ApplicationGUI());
         humiditySlider.addChangeListener(new ApplicationGUI());
+        lightSlider.addChangeListener(new ApplicationGUI();)
+
     }
 
     private static JSlider DrawSlider(int min, int max, int value, int majorTick){
@@ -365,7 +372,7 @@ class ApplicationGUI implements ItemListener, ChangeListener{
     }
     public static void printLightOnFrame(String value){
         lightLabel.setText("Current light value: " + value);
-        setLightLabel.setText("Toggle light ON/OFF: ");
+        setLightLabel.setText("Set the light level: ");
     }
 
     public static String getUserTemp(){

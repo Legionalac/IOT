@@ -336,7 +336,7 @@ class ApplicationGUI implements ItemListener, ChangeListener{
         }else if(e.getSource() == tempSlider){
             tempValue = String.valueOf(tempSlider.getValue());
         }else{
-            lightSlider = String.valueOf(lightSlider.getValue());
+            lightValue = String.valueOf(lightSlider.getValue());
         }
     }
 
@@ -350,7 +350,7 @@ class ApplicationGUI implements ItemListener, ChangeListener{
         //lightToggle.addItemListener(new ApplicationGUI());
         tempSlider.addChangeListener(new ApplicationGUI());
         humiditySlider.addChangeListener(new ApplicationGUI());
-        lightSlider.addChangeListener(new ApplicationGUI();)
+        lightSlider.addChangeListener(new ApplicationGUI());
 
     }
 

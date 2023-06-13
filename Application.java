@@ -133,8 +133,8 @@ class ReadThreadApplication implements Runnable
                         SocketFunctionsApplication.sendData(Application.messageNotify, group, port, socket);
 
                     } else if (messageType.equals("notify") && messageSender.equals("controller")) {
-                        Application.MQTT_BROKER = "tcp://" + hostIp + ":4000";
-                        // Sensor.MQTT_BROKER = "tcp://localhost:4000";
+                        Application.MQTT_BROKER = "tcp://" + hostIp + ":5000";
+                        // Sensor.MQTT_BROKER = "tcp://localhost:5000";
                         if (!Application.MQTT_BROKER.equals("") && !Application.MqttInitialized) {
                             Application.MqttInitialized = true;
                             MqttHelperApplication.initMqtt();

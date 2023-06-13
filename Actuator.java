@@ -117,8 +117,8 @@ class ReadThreadActuator implements Runnable
                         SocketFunctionsActuator.sendData(Actuator.messageNotify, group, port, socket);
 
                     } else if (messageType.equals("notify") && messageSender.equals("controller")) {
-                        Actuator.MQTT_BROKER = "tcp://" + hostIp + ":4000";
-                        // Actuator.MQTT_BROKER = "tcp://localhost:4000";
+                        Actuator.MQTT_BROKER = "tcp://" + hostIp + ":5000";
+                        // Actuator.MQTT_BROKER = "tcp://localhost:5000";
                         if (!Actuator.MQTT_BROKER.equals("") && !Actuator.MqttInitialized) {
                             Actuator.MqttInitialized = true;
                             MqttHelperActuator.initMqtt();

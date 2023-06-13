@@ -42,7 +42,7 @@ public class Controller
 
 
             adrress = SocketFunctionsServer.getIpAddress();
-            MQTT_BROKER = "tcp://" + adrress + ":4000";
+            MQTT_BROKER = "tcp://" + adrress + ":5000";
             messageMSearch = 
             "HOST:"+ adrress +"\n"+
             "ssdp:msearch\n"+ 
@@ -300,7 +300,7 @@ class Device{
     }
     public static void printAllDevices(){
         for(int i=0;i<Controller.deviceList.size();i++){
-            if((System.currentTimeMillis() - Controller.deviceList.get(i).getTime()) < 5000){
+            if((System.currentTimeMillis() - Controller.deviceList.get(i).getTime()) < 9500){
                 if(Controller.deviceList.get(i).deviceCategory.equals("Sensor")){
                     // System.out.println("Value of " + Controller.deviceList.get(i).deviceType + " Sensor : " + Controller.deviceList.get(i).getValue());
                 }

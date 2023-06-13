@@ -125,8 +125,8 @@ class ReadThreadSensor implements Runnable
                         SocketFunctionsSensor.sendData(Sensor.messageNotify, group, port, socket);
 
                     } else if (messageType.equals("notify") && messageSender.equals("controller")) {
-                        Sensor.MQTT_BROKER = "tcp://" + hostIp + ":4000";
-                        // Sensor.MQTT_BROKER = "tcp://localhost:4000";
+                        Sensor.MQTT_BROKER = "tcp://" + hostIp + ":5000";
+                        // Sensor.MQTT_BROKER = "tcp://localhost:5000";
                         if (!Sensor.MQTT_BROKER.equals("") && !Sensor.MqttInitialized) {
                             Sensor.MqttInitialized = true;
                             MqttHelperSensor.initMqtt();
